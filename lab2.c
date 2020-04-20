@@ -16,8 +16,8 @@
 int main()
 {
     char argv[MAXWORD][MAXLINE];
-    char *a[MAXWORD], *rdr_str; 
-    int i = 0, j = 0, k, err_exec, ch, inp, out, check = 0;
+    char *a[MAXWORD]; 
+    int i = 0, j = 0, k, err_exec, ch, inp, out, inp_flag = 0, out_flag = 0;
     
     printf("$");
     while ((ch = getchar()) != EOF) {
@@ -34,37 +34,36 @@ int main()
             }
             else {
                 if (!pid) {
-                    if ((check == 2) || (check == 3)) {     //if out-way was directed
-                        rdr_str = argv[out];
-                        a[out] = NULL;
-                        int fdout = open(rdr_str, O_WRONLY | O_CREAT);  //open outp file
+                    if (out_flag == 1) {     //if out-way was directed
+                        int fdout = open(a[out], O_WRONLY | O_CREAT | O_TRUNC, 0664);  //open outp file
                         if (fdout == -1) {
                             perror ("open out");
-                            EXIT_FAILURE;
+                            exit(EXIT_FAILURE);
                         }
                         if (-1 == dup2(fdout, STDOUT_FILENO)) {     //duplication for output
                             perror("dup out");
-                            EXIT_FAILURE;
+                            exit(EXIT_FAILURE);
                         }
+                        a[out] = NULL;
                     }
-                    if ((check == 1) || (check == 3)){      //if inp-way was directed
-                        rdr_str = argv[inp];
-                        a[inp] = NULL;
-                        int fdin = open(rdr_str, O_RDONLY);  //open inpt file
+                    if (inp_flag == 1){      //if inp-way was directed
+                        int fdin = open(a[inp], O_RDONLY);  //open inpt file
                         if (fdin == -1) {
                             perror ("open inp");
-                            EXIT_FAILURE;
-                        }
+                            exit(EXIT_FAILURE);
+                        }                        
                         if (-1 == dup2(fdin, STDIN_FILENO)) { //dupliication for input
                             perror ("dup inp");
-                            EXIT_FAILURE;
-                        --k;
+                            exit(EXIT_FAILURE);
                         }
+                        a[inp] = NULL;
                     }                     
                     err_exec = execvp(a[0],a);  //execution of user's commands
                     if (err_exec == -1) {
                         perror("execvp");
+                        exit(EXIT_FAILURE);
                     }
+                    exit(EXIT_SUCESS);
                 }
             }
             pid = wait(NULL);           //Finish of branching
@@ -72,7 +71,8 @@ int main()
                 perror("wait");
             }
             printf("$");
-            i = 0; j = 0; check = 0;
+            i = 0; j = 0;
+            inp_flag = 0; out_flag = 0;
             continue;                 //User, I wait your new command
         }
     /*-------------------------------------------------------------------------------*/
@@ -89,7 +89,7 @@ int main()
                 argv[i][j] = ch;           //then write this symbol in string
                 ++j;
             }
-            check = 1;                     //input was redirected
+            ++inp_flag;                    //input was redirected
             continue;
         }
 
@@ -103,7 +103,7 @@ int main()
                 argv[i][j] = ch;
                 ++j;
             }
-            check += 2;                    //output was redirected
+            ++out_flag;                   //output was redirected
             continue;
         }
         
@@ -113,3 +113,4 @@ int main()
     printf("\n");
     return 0;
 }
+
